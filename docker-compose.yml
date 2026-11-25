@@ -22,5 +22,28 @@ services:
       retries: 30
       start_period: 30s
 
+  app:
+    build: ./app
+    environment:
+      # ВНИМАНИЕ: хост базы — postgres (имя сервиса), а не localhost
+      DATABASE_URL: postgresql://shop:shop@postgres:5432/shop
+      INSTANCE_NAME: app
+    ports:
+      - "8080:8000"          # порт компьютера : порт контейнера
+    depends_on:
+      postgres:
+        condition: service_healthy   # стартовать, когда база готова
+    mem_limit: 200m
+    cpus: 0.5                # имитируем слабый сервер — пол-ядра
+    restart: on-failure
+
+  k6:
+    image: grafana/k6:latest
+    profiles: ["test"]
+    environment:
+      BASE_URL: http://app:8000     # изнутри сети Docker — по имени сервиса
+    volumes:
+      - ./k6:/scripts:ro
+
 volumes:
   pgdata:
